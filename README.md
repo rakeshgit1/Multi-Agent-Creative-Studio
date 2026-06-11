@@ -83,7 +83,7 @@ cp .env.example .env
 uv run adk web agents --allow_origins='*'
 ```
 
-Full step-by-step instructions are in the published codelab at [codelabs.developers.google.com/ai-creative-studio-adk-a2a](https://codelabs.developers.google.com/ai-creative-studio-adk-a2a).
+Full step-by-step instructions are in the published codelab at [ani-in.github.io/Multi-Agent-Creative-Studio](https://ani-in.github.io/Multi-Agent-Creative-Studio/).
 
 ## Tech Stack
 

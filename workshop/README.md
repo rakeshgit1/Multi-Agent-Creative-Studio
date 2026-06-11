@@ -89,6 +89,6 @@ The `starter/` directory contains the code participants start from:
 
 ### Published Codelab
 
-The official codelab is published at [codelabs.developers.google.com/ai-creative-studio-adk-a2a](https://codelabs.developers.google.com/ai-creative-studio-adk-a2a).
+The codelab is published via GitHub Pages at [ani-in.github.io/Multi-Agent-Creative-Studio](https://ani-in.github.io/Multi-Agent-Creative-Studio/).
 
 The `docs/` directory (at the repository root) is the GitHub Pages source. Commit changes there to publish updates.
