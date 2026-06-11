@@ -5,7 +5,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Codelab: live](https://img.shields.io/badge/codelab-live-success.svg)](https://ani-in.github.io/Multi-Agent-Creative-Studio/)
 [![Last commit](https://img.shields.io/github/last-commit/ANI-IN/Multi-Agent-Creative-Studio.svg)](https://github.com/ANI-IN/Multi-Agent-Creative-Studio/commits)
-[![Top language](https://img.shields.io/github/languages/top/ANI-IN/Multi-Agent-Creative-Studio.svg)](https://github.com/ANI-IN/Multi-Agent-Creative-Studio)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://github.com/ANI-IN/Multi-Agent-Creative-Studio)
 [![Stars](https://img.shields.io/github/stars/ANI-IN/Multi-Agent-Creative-Studio?style=social)](https://github.com/ANI-IN/Multi-Agent-Creative-Studio/stargazers)
 [![Open issues](https://img.shields.io/github/issues/ANI-IN/Multi-Agent-Creative-Studio.svg)](https://github.com/ANI-IN/Multi-Agent-Creative-Studio/issues)
 
