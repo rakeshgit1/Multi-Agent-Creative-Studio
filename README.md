@@ -16,6 +16,23 @@ A distributed multi-agent creative studio where specialized AI agents collaborat
 
 Coordinated by a **Creative Director** orchestrator that sequences the agents, handles the Critic's revision loop, and compiles the final campaign.
 
+### How the agents collaborate
+
+The Creative Director runs the specialists as a pipeline: research feeds the copy, the copy informs the visuals, and the **Critic** gates the result. When the Critic returns `NEEDS_REVISION`, the Director loops back to the Copywriter and/or Designer with the specific feedback before continuing — only an `APPROVED` review reaches the Project Manager, who assembles the final timeline.
+
+```mermaid
+flowchart TD
+    U(["User prompt — one campaign idea"]) --> CD{{"Creative Director (orchestrator)"}}
+    CD --> BS["Brand Strategist<br/>audience &amp; competitor research"]
+    BS --> CW["Copywriter<br/>captions, hashtags, CTAs"]
+    CW --> DS["Designer<br/>visual concepts → Gemini image → GCS"]
+    DS --> CR{"Critic<br/>review copy &amp; visuals"}
+    CR -->|NEEDS_REVISION| RV["Revise — re-run<br/>Copywriter / Designer with feedback"]
+    RV --> CR
+    CR -->|APPROVED| PM["Project Manager<br/>timeline, tasks, optional Notion"]
+    PM --> OUT(["Complete Instagram campaign"])
+```
+
 ## Key Concepts Covered
 
 - Building ADK agents with tools, callbacks, and system instructions

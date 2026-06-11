@@ -30,6 +30,40 @@ A distributed multimodal multi-agent system for Instagram campaign generation:
 | Project Manager | Cloud Run | Timeline, tasks, and Notion sync via MCP |
 | Creative Director | Gemini Enterprise Agent Platform Runtime | Orchestrator that routes tasks via A2A |
 
+### How a campaign flows over A2A
+
+Each specialist is an independent service with its own HTTPS endpoint. The Creative Director (deployed to Gemini Enterprise Agent Platform Runtime) calls them over the **A2A protocol** as remote agents, one step at a time, and only advances past the Critic once the review comes back `APPROVED`. The Project Manager optionally syncs the resulting tasks to Notion through an MCP toolset.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant CD as Creative Director (Agent Runtime)
+    participant BS as Brand Strategist
+    participant CW as Copywriter
+    participant DS as Designer
+    participant CR as Critic
+    participant PM as Project Manager
+
+    User->>CD: Campaign brief
+    CD->>BS: A2A: research audience & trends
+    BS-->>CD: Insights
+    CD->>CW: A2A: write captions (ADK Skill)
+    CW-->>CD: Posts
+    CD->>DS: A2A: generate visuals
+    DS-->>CD: Image URIs (GCS)
+    CD->>CR: A2A: review copy & visuals
+    CR-->>CD: Score (APPROVED / NEEDS_REVISION)
+    opt If NEEDS_REVISION
+        CD->>CW: A2A: revise posts with feedback
+        CW-->>CD: Revised posts
+        CD->>CR: A2A: re-review
+        CR-->>CD: APPROVED
+    end
+    CD->>PM: A2A: build timeline (optional Notion via MCP)
+    PM-->>CD: Campaign plan
+    CD-->>User: Complete Instagram campaign
+```
+
 ### Workshop Details
 
 | | |
