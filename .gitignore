@@ -1,6 +1,8 @@
 # User-specified
 .claude
-skills/
+# root-level scratch skills dir only — NOT the workshop ADK Skill
+# under workshop/starter/agents/copywriter/skills (which must be tracked)
+/skills/
 .env
 refs/
 prez_youtube/
