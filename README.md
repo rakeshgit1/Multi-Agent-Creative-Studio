@@ -4,10 +4,9 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Codelab: live](https://img.shields.io/badge/codelab-live-success.svg)](https://ani-in.github.io/Multi-Agent-Creative-Studio/)
-[![Last commit](https://img.shields.io/github/last-commit/ANI-IN/Multi-Agent-Creative-Studio.svg)](https://github.com/ANI-IN/Multi-Agent-Creative-Studio/commits)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://github.com/ANI-IN/Multi-Agent-Creative-Studio)
-[![Stars](https://img.shields.io/github/stars/ANI-IN/Multi-Agent-Creative-Studio?style=social)](https://github.com/ANI-IN/Multi-Agent-Creative-Studio/stargazers)
-[![Open issues](https://img.shields.io/github/issues/ANI-IN/Multi-Agent-Creative-Studio.svg)](https://github.com/ANI-IN/Multi-Agent-Creative-Studio/issues)
+[![Built with Google ADK](https://img.shields.io/badge/built%20with-Google%20ADK-4285F4?logo=google&logoColor=white)](https://google.github.io/adk-docs/)
+[![Protocols: A2A + MCP](https://img.shields.io/badge/protocols-A2A%20%2B%20MCP-5f6368.svg)](https://github.com/a2aproject)
 
 > Build status / test coverage badges are intentionally omitted: this repository ships a pre-built static codelab and a teaching scaffold, so it has no CI pipeline or automated test suite (see [Intentionally not included](#intentionally-not-included)).
 
