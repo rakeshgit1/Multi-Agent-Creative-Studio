@@ -468,7 +468,7 @@ This is a fork of an educational codelab; contributions that improve clarity, fi
 
 ## License
 
-Licensed under the Apache License 2.0. See [LICENSE](LICENSE). The original codelab copyright is retained and modifications are noted alongside it, as required by the license.
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). The original codelab copyright is retained and modifications are noted alongside it, as required by the license.
 
 ## Acknowledgments
 
