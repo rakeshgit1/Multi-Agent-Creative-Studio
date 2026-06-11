@@ -9,11 +9,13 @@ This directory contains all the materials for the hands-on workshop codelab.
 ```
 workshop/
 ├── diagrams/               # Screenshots and GIFs used in the codelab
-├── starter/                # Starter code given to participants
-│   ├── agents/             # Agent stubs with TODO comments
-│   └── deploy/             # Deployment scripts
-└── docs/                   # Published codelab (codelab.json + index.html)
+├── setup_inspector.sh      # A2A Inspector setup helper
+└── starter/                # Starter code given to participants
+    ├── agents/             # Agent stubs with TODO comments
+    └── deploy/             # Deployment scripts
 ```
+
+> The published codelab lives in the `docs/` directory at the **repository root** (a sibling of `workshop/`, not inside it).
 
 ### What Participants Build
 
@@ -55,4 +57,4 @@ The `starter/` directory contains the code participants start from:
 
 The official codelab is published at [codelabs.developers.google.com/ai-creative-studio-adk-a2a](https://codelabs.developers.google.com/ai-creative-studio-adk-a2a).
 
-The `docs/` directory is the GitHub Pages source. Commit changes there to publish updates.
+The `docs/` directory (at the repository root) is the GitHub Pages source. Commit changes there to publish updates.

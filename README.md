@@ -29,18 +29,22 @@ Coordinated by a **Creative Director** orchestrator that sequences the agents, h
 ## Repository Structure
 
 ```
-workshop/
-  starter/          ← participant starting point (TODOs to fill in)
-    agents/
-      brand_strategist/
-      copywriter/         ← includes ADK Skills (instagram-copywriting)
-      designer/           ← Gemini image generation + GCS upload
-      critic/
-      project_manager/    ← Notion MCP integration + error handling callback
-      creative_director/  ← orchestrator with Critic revision loop
-    deploy/         ← Cloud Run + Gemini Enterprise Agent Platform deployment scripts
-  docs/             ← published codelab (codelab.json + index.html)
-  diagrams/         ← screenshots and GIFs used in the codelab
+.
+├── docs/                           ← published codelab (codelab.json + index.html) — GitHub Pages source
+├── LICENSE
+├── README.md
+└── workshop/
+    ├── diagrams/                   ← screenshots and GIFs used in the codelab
+    ├── setup_inspector.sh          ← A2A Inspector setup helper
+    └── starter/                    ← participant starting point (TODOs to fill in)
+        ├── agents/
+        │   ├── brand_strategist/
+        │   ├── copywriter/         ← includes ADK Skills (instagram-copywriting)
+        │   ├── designer/           ← Gemini image generation + GCS upload
+        │   ├── critic/
+        │   ├── project_manager/    ← Notion MCP integration + error handling callback
+        │   └── creative_director/  ← orchestrator with Critic revision loop
+        └── deploy/                 ← Cloud Run + Gemini Enterprise Agent Platform deployment scripts
 ```
 
 ![System Architecture](workshop/diagrams/ai-creative-studio-architecture.svg)
