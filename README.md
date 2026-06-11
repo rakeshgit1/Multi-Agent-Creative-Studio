@@ -75,8 +75,8 @@ flowchart TD
 ## Getting Started
 
 ```bash
-git clone https://github.com/Saoussen-CH/mas-a2a-gcp.git
-cd mas-a2a-gcp/workshop/starter
+git clone https://github.com/ANI-IN/Multi-Agent-Creative-Studio.git
+cd Multi-Agent-Creative-Studio/workshop/starter
 uv sync
 cp .env.example .env
 # Fill in .env with your project values
