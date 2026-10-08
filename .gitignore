@@ -116,3 +116,7 @@ Desktop.ini
 *.bak
 *.swp
 .cache/
+
+# Large GIFs (kept local only; too big to push reliably)
+docs/img/*.gif
+workshop/diagrams/*.gif
