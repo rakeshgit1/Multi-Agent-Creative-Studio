@@ -112,6 +112,34 @@ def format_env_vars_for_orchestrator(agent_urls: dict[str, str]) -> dict[str, st
     }
 
 
+LANGFUSE_SECRET_ID = "langfuse-secret-key"
+
+
+def langfuse_configured() -> bool:
+    """True when Langfuse credentials are present in the environment."""
+    return bool(os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY"))
+
+
+def langfuse_env_vars() -> dict[str, str]:
+    """
+    Non-secret Langfuse settings to pass to deployed agents.
+
+    The secret key is NOT included here - it is stored in Secret Manager
+    (secret id LANGFUSE_SECRET_ID) and injected separately.
+    Returns an empty dict when Langfuse is not configured.
+    """
+    if not langfuse_configured():
+        return {}
+    env = {
+        "LANGFUSE_PUBLIC_KEY": os.environ["LANGFUSE_PUBLIC_KEY"],
+        "LANGFUSE_TRACING_ENVIRONMENT": os.getenv("LANGFUSE_TRACING_ENVIRONMENT", "production"),
+    }
+    base_url = os.getenv("LANGFUSE_BASE_URL") or os.getenv("LANGFUSE_HOST")
+    if base_url:
+        env["LANGFUSE_BASE_URL"] = base_url
+    return env
+
+
 def get_agent_name_mapping() -> dict[str, str]:
     """
     Get mapping between service names and environment variable keys

@@ -149,6 +149,39 @@ async def setup_notion_secrets(project_id: str) -> dict[str, str]:
     return secret_refs
 
 
+async def setup_langfuse_secret(project_id: str) -> dict[str, str]:
+    """
+    Store the Langfuse secret key in Secret Manager and grant the Cloud Run
+    service account access to it.
+
+    Returns:
+        {"LANGFUSE_SECRET_KEY": "langfuse-secret-key:latest"} for --set-secrets,
+        or an empty dict if Langfuse is not configured (tracing stays disabled).
+    """
+    if not env_utils.langfuse_configured():
+        print("   Langfuse not configured (LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY) - tracing disabled")
+        return {}
+
+    secret_id = env_utils.LANGFUSE_SECRET_ID
+    await run_command_async([
+        "gcloud", "secrets", "create", secret_id,
+        f"--project={project_id}",
+        "--replication-policy=automatic",
+        "--quiet",
+    ])
+    returncode, _, stderr = await _add_secret_version(
+        secret_id, os.environ["LANGFUSE_SECRET_KEY"], project_id
+    )
+    if returncode != 0:
+        print(f"   Warning: Could not store {secret_id}: {stderr.strip()} - tracing disabled")
+        return {}
+
+    print(f"   ✓ {secret_id} stored in Secret Manager")
+    refs = {"LANGFUSE_SECRET_KEY": f"{secret_id}:latest"}
+    await grant_pm_secret_access(project_id, refs)
+    return refs
+
+
 async def grant_pm_secret_access(project_id: str, secret_refs: dict[str, str]) -> None:
     """
     Grant the Project Manager Cloud Run service account
@@ -181,7 +214,10 @@ async def grant_pm_secret_access(project_id: str, secret_refs: dict[str, str]) -
 
 
 async def deploy_single_agent(
-    agent_config: dict, project_id: str, region: str
+    agent_config: dict,
+    project_id: str,
+    region: str,
+    langfuse_secret_refs: dict[str, str] | None = None,
 ) -> str | None:
     """
     Deploy a single agent to Cloud Run
@@ -190,6 +226,7 @@ async def deploy_single_agent(
         agent_config: Agent configuration dict
         project_id: GCP project ID
         region: GCP region
+        langfuse_secret_refs: Secret Manager refs for Langfuse (enables tracing)
 
     Returns:
         Agent URL or None if deployment failed
@@ -225,15 +262,22 @@ async def deploy_single_agent(
     if gemini_image_model and name == "designer":
         env_vars += f",GEMINI_IMAGE_MODEL={gemini_image_model}"
 
-    # Store Notion credentials in Secret Manager for project-manager
+    # Langfuse tracing: public settings as env vars, secret key from Secret Manager
     secret_refs: dict[str, str] = {}
+    if langfuse_secret_refs:
+        for key, value in env_utils.langfuse_env_vars().items():
+            env_vars += f",{key}={value}"
+        secret_refs.update(langfuse_secret_refs)
+
+    # Store Notion credentials in Secret Manager for project-manager
     if name == "project-manager":
         if os.getenv("NOTION_TOKEN") and os.getenv("NOTION_PROJECT_DATABASE_ID"):
             print(f"   Storing Notion credentials in Secret Manager...")
-            secret_refs = await setup_notion_secrets(project_id)
-            if secret_refs:
+            notion_refs = await setup_notion_secrets(project_id)
+            if notion_refs:
                 # Grant SA access before deploy so the service starts cleanly
-                await grant_pm_secret_access(project_id, secret_refs)
+                await grant_pm_secret_access(project_id, notion_refs)
+                secret_refs.update(notion_refs)
         else:
             print(
                 f"   Warning: NOTION_TOKEN or NOTION_PROJECT_DATABASE_ID not set"
@@ -441,10 +485,16 @@ async def deploy_all_agents(project_id: str, region: str) -> dict[str, str]:
     agent_urls = {}
     failed = []
 
+    # Langfuse tracing: store the secret key once, shared by every service
+    print("Configuring Langfuse tracing...")
+    langfuse_secret_refs = await setup_langfuse_secret(project_id)
+
     for i, agent in enumerate(AGENTS, 1):
         print(f"[{i}/{len(AGENTS)}] ", end="", flush=True)
         try:
-            url = await deploy_single_agent(agent, project_id, region)
+            url = await deploy_single_agent(
+                agent, project_id, region, langfuse_secret_refs=langfuse_secret_refs
+            )
             if url:
                 agent_urls[agent["name"]] = url
             else:

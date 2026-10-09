@@ -11,7 +11,15 @@ except ImportError:
     from retry import GENERATE_CONTENT_CONFIG
     from image_review_tool import review_image
 
+try:
+    from .observability import instrument_a2a_app, setup_observability
+except ImportError:
+    from observability import instrument_a2a_app, setup_observability
+
 load_dotenv()
+
+# Langfuse tracing: agent runs, LLM calls and tool calls (no-op without LANGFUSE_* keys)
+setup_observability("critic")
 
 logger = logging.getLogger("ai_creative_studio.critic")
 
@@ -107,7 +115,9 @@ if __name__ == "__main__":
     PUBLIC_PORT = int(os.getenv("PUBLIC_PORT", str(PORT)))
     PROTOCOL = os.getenv("PROTOCOL", "http")
 
-    a2a_app = to_a2a(root_agent, host=PUBLIC_HOST, port=PUBLIC_PORT, protocol=PROTOCOL)
+    a2a_app = instrument_a2a_app(
+        to_a2a(root_agent, host=PUBLIC_HOST, port=PUBLIC_PORT, protocol=PROTOCOL)
+    )
 
     logger.info(f"Starting Critic on {PROTOCOL}://{HOST}:{PORT}")
     logger.info(f"Agent card: {PROTOCOL}://{HOST}:{PORT}/.well-known/agent.json")

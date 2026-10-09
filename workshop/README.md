@@ -78,6 +78,7 @@ sequenceDiagram
 - Google Cloud project with billing enabled
 - Owner or Editor IAM role
 - (Optional) Notion account for MCP integration
+- (Optional) [Langfuse](https://langfuse.com) account for tracing (free tier is enough)
 
 ### Starter Code
 
@@ -86,6 +87,16 @@ The `starter/` directory contains the code participants start from:
 - Agent files have numbered `# TODO` comments guiding participants through each implementation step
 - Deploy scripts are fully functional; participants only implement agent logic
 - Pre-written infrastructure includes retry config, error handling callbacks, and MCP toolset setup
+
+### Observability with Langfuse
+
+Every agent can send traces to [Langfuse](https://langfuse.com): agent runs, every LLM call, and every tool call (including the A2A calls from the Creative Director to the specialists). A whole campaign shows up as **one trace** across all six agents.
+
+1. Create a Langfuse project and copy its API keys.
+2. Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `LANGFUSE_BASE_URL` in `starter/.env` (see `.env.example`). Leave the keys empty to run without tracing.
+3. Run or deploy as usual. The deploy scripts store the secret key in Secret Manager and pass the settings to Cloud Run and Agent Runtime.
+
+How it works: each agent folder has an `observability.py` (copied per agent, like `retry.py`, because every agent is its own Docker image). `agent.py` calls `setup_observability("<agent>")`, which turns on the OpenInference ADK instrumentor and OpenTelemetry HTTP instrumentation. Langfuse uses its own `TracerProvider`, so it keeps working next to Cloud Trace on Agent Runtime. Without the keys, all of it is a no-op.
 
 ### Published Codelab
 

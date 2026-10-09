@@ -20,7 +20,16 @@ try:
 except ImportError:
     from prompt import SYSTEM_INSTRUCTION_TEMPLATE  # direct execution fallback
 
+try:
+    from .observability import setup_observability
+except ImportError:
+    from observability import setup_observability
+
 logger = logging.getLogger("ai_creative_studio.creative_director")
+
+# Langfuse tracing: agent runs, LLM calls and tool calls, including the A2A calls
+# to the specialists (no-op without LANGFUSE_* keys)
+setup_observability("creative_director")
 logger.setLevel(logging.INFO)
 
 

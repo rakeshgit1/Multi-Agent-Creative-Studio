@@ -11,7 +11,15 @@ except ImportError:
     from retry import GENERATE_CONTENT_CONFIG
     from image_gen_tool import generate_image
 
+try:
+    from .observability import instrument_a2a_app, setup_observability
+except ImportError:
+    from observability import instrument_a2a_app, setup_observability
+
 load_dotenv()
+
+# Langfuse tracing: agent runs, LLM calls and tool calls (no-op without LANGFUSE_* keys)
+setup_observability("designer")
 
 logger = logging.getLogger("ai_creative_studio.designer")
 
@@ -58,7 +66,7 @@ If `generate_image` returns an error, include the error message and continue wit
 # =============================================================================
 root_agent = Agent(
     name="designer",
-    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
     generate_content_config=GENERATE_CONTENT_CONFIG,
     tools=[FunctionTool(func=generate_image)],
     instruction=SYSTEM_INSTRUCTION,
@@ -78,7 +86,9 @@ if __name__ == "__main__":
     PUBLIC_PORT = int(os.getenv("PUBLIC_PORT", str(PORT)))
     PROTOCOL = os.getenv("PROTOCOL", "http")
 
-    a2a_app = to_a2a(root_agent, host=PUBLIC_HOST, port=PUBLIC_PORT, protocol=PROTOCOL)
+    a2a_app = instrument_a2a_app(
+        to_a2a(root_agent, host=PUBLIC_HOST, port=PUBLIC_PORT, protocol=PROTOCOL)
+    )
 
     logger.info(f"Starting Designer on {PROTOCOL}://{HOST}:{PORT}")
     logger.info(f"Agent card: {PROTOCOL}://{HOST}:{PORT}/.well-known/agent.json")

@@ -88,6 +88,55 @@ def init_vertex_ai():
     print(f"  Staging: {STAGING_BUCKET}")
 
 
+def setup_langfuse_env() -> dict:
+    """Build the Langfuse env vars for the Agent Engine deployment.
+
+    The public settings go in as plain env vars. The secret key is stored in
+    Secret Manager and passed as a SecretRef, and the Vertex AI Agent Engine
+    service agent is granted access to it. Returns {} (tracing stays off) when
+    Langfuse is not configured or the secret could not be set up.
+    """
+    sys.path.insert(0, str(Path(__file__).parent))
+    import env_utils
+
+    if not env_utils.langfuse_configured():
+        print("   Langfuse not configured (LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY) - tracing disabled")
+        return {}
+
+    secret_id = env_utils.LANGFUSE_SECRET_ID
+    gcloud_project = f"--project={PROJECT_ID}"
+    subprocess.run(
+        ["gcloud", "secrets", "create", secret_id, gcloud_project,
+         "--replication-policy=automatic", "--quiet"],
+        capture_output=True, text=True,
+    )  # ALREADY_EXISTS is fine
+    added = subprocess.run(
+        ["gcloud", "secrets", "versions", "add", secret_id, gcloud_project, "--data-file=-"],
+        input=os.environ["LANGFUSE_SECRET_KEY"], capture_output=True, text=True,
+    )
+    if added.returncode != 0:
+        print(f"   Warning: could not store Langfuse secret: {added.stderr.strip()} - tracing disabled")
+        return {}
+
+    agent_engine_sa = f"service-{PROJECT_NUMBER}@gcp-sa-aiplatform-re.iam.gserviceaccount.com"
+    granted = subprocess.run(
+        ["gcloud", "secrets", "add-iam-policy-binding", secret_id, gcloud_project,
+         f"--member=serviceAccount:{agent_engine_sa}",
+         "--role=roles/secretmanager.secretAccessor", "--quiet"],
+        capture_output=True, text=True,
+    )
+    if granted.returncode != 0:
+        print(f"   Warning: could not grant {agent_engine_sa} access to the secret: "
+              f"{granted.stderr.strip()} - tracing disabled")
+        return {}
+
+    print(f"   ✓ Langfuse secret stored and shared with {agent_engine_sa}")
+    return {
+        **env_utils.langfuse_env_vars(),
+        "LANGFUSE_SECRET_KEY": {"secret": secret_id, "version": "latest"},
+    }
+
+
 def deploy_orchestrator(auto_deploy_specialists=False):
     """Deploy using single-stage approach - create with all config at once.
 
@@ -168,12 +217,16 @@ def deploy_orchestrator(auto_deploy_specialists=False):
     print("      • python-dotenv>=1.0.0")
     print("      • pydantic>=2.0.0")
     print("      • cloudpickle>=3.0.0")
+    print("      • langfuse + OpenInference/OpenTelemetry instrumentation (tracing)")
     print("    - Environment Variables:")
     print(f"      • COPYWRITER_AGENT_URL={COPYWRITER_URL or '(not set)'}")
     print(f"      • DESIGNER_AGENT_URL={DESIGNER_URL or '(not set)'}")
     print(f"      • STRATEGIST_AGENT_URL={STRATEGIST_URL or '(not set)'}")
     print(f"      • CRITIC_AGENT_URL={CRITIC_URL or '(not set)'}")
     print(f"      • PM_AGENT_URL={PM_URL or '(not set)'}")
+
+    print("\n⏳ Configuring Langfuse tracing...")
+    langfuse_env = setup_langfuse_env()
 
     try:
         # chdir to agents/ so extra_packages=["creative_director"] resolves as a
@@ -192,6 +245,10 @@ def deploy_orchestrator(auto_deploy_specialists=False):
                 "python-dotenv>=1.0.0",
                 "pydantic>=2.0.0",
                 "cloudpickle>=3.0.0",
+                "langfuse>=4.0.0,<5",
+                "openinference-instrumentation-google-adk>=0.1.28,<1.0",
+                "opentelemetry-instrumentation-httpx>=0.50b0",
+                "opentelemetry-instrumentation-starlette>=0.50b0",
             ],
             extra_packages=["creative_director"],
             env_vars={
@@ -210,6 +267,8 @@ def deploy_orchestrator(auto_deploy_specialists=False):
                 "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT": "true",
                 # SA used to sign GCS image URLs - required for get_image_links tool.
                 "SIGNING_SERVICE_ACCOUNT": f"{PROJECT_NUMBER}-compute@developer.gserviceaccount.com",
+                # Langfuse tracing (empty when not configured)
+                **langfuse_env,
             },
         )
 

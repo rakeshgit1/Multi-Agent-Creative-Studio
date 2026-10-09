@@ -7,4 +7,8 @@ dependencies = [
     "google-adk[a2a]==1.31.1",
     "uvicorn[standard]>=0.25.0",
     "python-dotenv>=1.0.0",
+    "langfuse>=4.0.0,<5",
+    "openinference-instrumentation-google-adk>=0.1.28,<1.0",
+    "opentelemetry-instrumentation-httpx>=0.50b0",
+    "opentelemetry-instrumentation-starlette>=0.50b0",
 ]
