@@ -90,7 +90,7 @@ The `starter/` directory contains the code participants start from:
 
 ### Observability with Langfuse
 
-Every agent can send traces to [Langfuse](https://langfuse.com): agent runs, every LLM call, and every tool call (including the A2A calls from the Creative Director to the specialists). A whole campaign shows up as **one trace** across all six agents.
+Every agent can send traces to [Langfuse](https://langfuse.com): agent runs, every LLM call, every tool call (including the A2A calls from the Creative Director to the specialists), and the Gemini calls made directly inside tools (image generation and review). For those inner calls the response body and input images are hidden, so generated images are never uploaded. A whole campaign shows up as **one trace** across all six agents.
 
 1. Create a Langfuse project and copy its API keys.
 2. Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `LANGFUSE_BASE_URL` in `starter/.env` (see `.env.example`). Leave the keys empty to run without tracing.

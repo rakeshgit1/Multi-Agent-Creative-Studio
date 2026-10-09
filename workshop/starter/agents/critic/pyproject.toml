@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "langfuse>=4.0.0,<5",
     "openinference-instrumentation-google-adk>=0.1.28,<1.0",
+    "openinference-instrumentation-google-genai>=1.4.0,<2",
     "opentelemetry-instrumentation-httpx>=0.50b0",
     "opentelemetry-instrumentation-starlette>=0.50b0",
 ]

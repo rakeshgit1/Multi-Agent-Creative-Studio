@@ -23,6 +23,7 @@ Environment variables (all read by the Langfuse SDK except the last two):
 
 import logging
 import os
+from urllib.parse import urlparse
 
 logger = logging.getLogger("ai_creative_studio.observability")
 
@@ -30,14 +31,49 @@ _initialized = False
 _tracer_provider = None  # Langfuse's private provider (see setup_observability)
 _instrumented_apps: set[int] = set()
 
-# Instrumentation scopes that we additionally export on top of Langfuse's
-# defaults (gen_ai / OpenInference / Langfuse spans). They give the trace its
-# cross-agent skeleton: tool call -> HTTP request -> remote agent server.
-_EXTRA_EXPORTED_SCOPES = (
-    "opentelemetry.instrumentation.httpx",
+# Server-side scopes exported on top of Langfuse's defaults (gen_ai /
+# OpenInference / Langfuse spans). Together with the outgoing httpx spans they
+# give the trace its cross-agent skeleton:
+#   tool call -> HTTP request -> remote agent server -> remote agent run
+_SERVER_SCOPES = (
     "opentelemetry.instrumentation.starlette",
     "opentelemetry.instrumentation.asgi",
 )
+
+
+_SKIP_ATTR = "ai_creative_studio.skip_export"
+_GENAI_SCOPE = "openinference.instrumentation.google_genai"
+_ADK_SCOPE = "openinference.instrumentation.google_adk"
+
+
+class _DropNestedGenaiSpans:
+    """Marks google-genai spans that sit directly under an ADK LLM span.
+
+    ADK already records each of its model calls (`call_llm`, with usage). The
+    google-genai instrumentor would add a second LLM span beneath it for the
+    same request and Langfuse would count the tokens twice. Only genai calls
+    made from inside a tool (parent is not an ADK LLM span) are kept.
+    """
+
+    def on_start(self, span, parent_context=None):
+        from opentelemetry import trace
+
+        scope = getattr(span.instrumentation_scope, "name", "") or ""
+        if not scope.startswith(_GENAI_SCOPE):
+            return
+        parent = trace.get_current_span(parent_context)
+        parent_scope = getattr(getattr(parent, "instrumentation_scope", None), "name", "") or ""
+        if parent_scope.startswith(_ADK_SCOPE):
+            span.set_attribute(_SKIP_ATTR, True)
+
+    def on_end(self, span):
+        pass
+
+    def shutdown(self):
+        pass
+
+    def force_flush(self, timeout_millis=30000):
+        return True
 
 
 def langfuse_enabled() -> bool:
@@ -47,17 +83,39 @@ def langfuse_enabled() -> bool:
     return bool(os.getenv("LANGFUSE_PUBLIC_KEY") and os.getenv("LANGFUSE_SECRET_KEY"))
 
 
+def _a2a_hosts() -> set[str]:
+    """Hosts of the configured specialist agents (the *_AGENT_URL env vars)."""
+    hosts = set()
+    for key, value in os.environ.items():
+        if key.endswith("_AGENT_URL") and value:
+            netloc = urlparse(value).netloc
+            if netloc:
+                hosts.add(netloc)
+    return hosts
+
+
 def _should_export_span(span) -> bool:
-    """Langfuse's default span filter plus the A2A HTTP spans."""
+    """Langfuse's default span filter plus the A2A HTTP spans.
+
+    Outgoing httpx spans are exported only for calls to the specialist agents:
+    every other HTTP call (Gemini, GCS, Langfuse's own uploads) would just be
+    noise, and exporting Langfuse's own requests would feed back on itself.
+    """
     from langfuse.span_filter import is_default_export_span
 
+    attrs = span.attributes or {}
+    if attrs.get(_SKIP_ATTR):
+        return False
     if is_default_export_span(span):
         return True
     scope = getattr(span.instrumentation_scope, "name", "") or ""
-    if not scope.startswith(_EXTRA_EXPORTED_SCOPES):
-        return False
-    # Drop the noisy ASGI receive/send sub-spans; keep the request-level spans.
-    return not (span.attributes or {}).get("asgi.event.type")
+    if scope.startswith("opentelemetry.instrumentation.httpx"):
+        url = attrs.get("http.url") or attrs.get("url.full") or ""
+        return urlparse(str(url)).netloc in _a2a_hosts()
+    if scope.startswith(_SERVER_SCOPES):
+        # Request-level server spans only; drop ASGI receive/send sub-spans.
+        return not attrs.get("asgi.event.type")
+    return False
 
 
 def setup_observability(service_name: str) -> bool:
@@ -101,6 +159,8 @@ def setup_observability(service_name: str) -> bool:
         if release:
             resource_attrs["langfuse.release"] = release
         _tracer_provider = TracerProvider(resource=Resource.create(resource_attrs))
+        # Must be registered before Langfuse's own span processor.
+        _tracer_provider.add_span_processor(_DropNestedGenaiSpans())
 
         Langfuse(
             tracer_provider=_tracer_provider,
@@ -110,6 +170,17 @@ def setup_observability(service_name: str) -> bool:
 
         # Agent, LLM and tool-call spans.
         GoogleADKInstrumentor().instrument(tracer_provider=_tracer_provider)
+        # Direct google-genai calls made inside tools (e.g. image generation and
+        # review). Model name, prompt text and token usage are kept; response
+        # bodies and input images are hidden so generated images (large base64
+        # payloads) are never uploaded to Langfuse.
+        from openinference.instrumentation import TraceConfig
+        from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
+
+        GoogleGenAIInstrumentor().instrument(
+            tracer_provider=_tracer_provider,
+            config=TraceConfig(hide_outputs=True, hide_input_images=True),
+        )
         # Propagate trace context over A2A (agent -> agent HTTP calls).
         HTTPXClientInstrumentor().instrument(tracer_provider=_tracer_provider)
 

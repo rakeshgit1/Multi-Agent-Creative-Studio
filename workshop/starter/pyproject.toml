@@ -13,4 +13,5 @@ dependencies = [
     "openinference-instrumentation-google-adk>=0.1.28,<1.0",
     "opentelemetry-instrumentation-httpx>=0.59b0",
     "opentelemetry-instrumentation-starlette>=0.59b0",
+    "openinference-instrumentation-google-genai>=1.4.12",
 ]
