@@ -37,7 +37,8 @@ async def generate_image(
     # gemini-3.1-flash-image does NOT support function calling, so it cannot
     # be used as an ADK agent - but calling it directly here is fine.
     image_model = os.environ.get(
-        "GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image"
+        #"GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image"
+        "GEMINI_IMAGE_MODEL", "gemini-nano-banana-2.1"
     )
 
     # Aspect ratio is not an API parameter for Gemini native generation - inject it
@@ -96,17 +97,13 @@ async def generate_image(
         # Save as ADK artifact so adk web renders the image inline when testing
         # the Designer directly. Silently skipped when no artifact service is
         # configured (e.g. Cloud Run deployment).
-        if image_bytes and gcs_uri:
-            ext = "jpg" if "jpeg" in mime_type else "png"
-            try:
-                artifact = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
-                await tool_context.save_artifact(f"{concept_name}.{ext}", artifact)
-            except ValueError:
-                pass
+        try:
+            artifact = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+            await tool_context.save_artifact(f"{concept_name}.{ext}", artifact)
+        except ValueError:
+            pass
 
-            return {"status": "success", "gcs_uri": gcs_uri, "concept_name": concept_name}
-
-        return {"status": "error", "error": "Image generation incomplete - fill in the TODOs"}
+        return {"status": "success", "gcs_uri": gcs_uri, "concept_name": concept_name}
 
     except Exception as e:
         return {"status": "error", "error": str(e)}
