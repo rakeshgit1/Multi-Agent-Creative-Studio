@@ -52,7 +52,9 @@ class _DropNestedGenaiSpans:
     ADK already records each of its model calls (`call_llm`, with usage). The
     google-genai instrumentor would add a second LLM span beneath it for the
     same request and Langfuse would count the tokens twice. Only genai calls
-    made from inside a tool (parent is not an ADK LLM span) are kept.
+    made from inside a tool (parent is an ADK TOOL span, not an LLM span) are
+    kept. ADK tool spans share the ADK instrumentation scope, so the scope
+    alone cannot tell them apart: the span kind or name is checked as well.
     """
 
     def on_start(self, span, parent_context=None):
@@ -63,7 +65,14 @@ class _DropNestedGenaiSpans:
             return
         parent = trace.get_current_span(parent_context)
         parent_scope = getattr(getattr(parent, "instrumentation_scope", None), "name", "") or ""
-        if parent_scope.startswith(_ADK_SCOPE):
+        if not parent_scope.startswith(_ADK_SCOPE):
+            return
+        parent_attrs = getattr(parent, "attributes", None) or {}
+        is_llm_parent = (
+            parent_attrs.get("openinference.span.kind") == "LLM"
+            or (getattr(parent, "name", "") or "").startswith("call_llm")
+        )
+        if is_llm_parent:
             span.set_attribute(_SKIP_ATTR, True)
 
     def on_end(self, span):

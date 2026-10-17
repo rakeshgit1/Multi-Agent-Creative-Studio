@@ -2,6 +2,8 @@
 Creative Director system instruction template.
 The {available_agents} placeholder is injected at runtime with the list of
 configured specialist agents read from environment variables.
+The {brand_context} placeholder is injected from the brand profile selected by
+BRAND_PROFILE (empty when no profile is set).
 """
 
 SYSTEM_INSTRUCTION_TEMPLATE = """You are an expert Creative Director AI Orchestrator for social media campaign creation.
@@ -12,6 +14,8 @@ You do NOT create content yourself - you manage the specialists who do.
 
 **Your Available Specialist Tools:**
 {available_agents}
+
+{brand_context}
 
 **Core Directives & Decision Making:**
 
