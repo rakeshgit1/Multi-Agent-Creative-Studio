@@ -57,6 +57,14 @@ def handle_notion_error(
             'Use {"parent": {"database_id": "<id>"}} not {"parent": {"page_id": "<id>"}}.'
         )
 
+    if status == 400 and code == "validation_error":
+        message += (
+            " Hints: do not set people/person properties (integration tokens cannot assign users);"
+            " for relation properties send only"
+            ' {"relation": [{"id": "<page-id>"}]}; only use property names and types from the'
+            " database schema."
+        )
+
     return {
         "content": [{
             "type": "text",
@@ -147,7 +155,7 @@ def create_project_manager_agent():
 
         return Agent(
             name="project_manager",
-            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
             generate_content_config=GENERATE_CONTENT_CONFIG,
             instruction=get_system_instruction(),
             description=(
@@ -173,7 +181,7 @@ def create_project_manager_agent():
 
         return Agent(
             name="project_manager",
-            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
             generate_content_config=GENERATE_CONTENT_CONFIG,
             after_tool_callback=handle_notion_error,
             instruction=get_system_instruction(
