@@ -294,6 +294,9 @@ Configuration is driven by `workshop/starter/.env` (copied from `.env.example`).
 | `STRATEGIST_AGENT_URL` | Brand Strategist Cloud Run URL | empty (auto-populated) | No |
 | `AGENT_ENGINE_ID` | Deployed Agent Engine ID (needed by `run_campaign.py`) | empty (auto-populated) | No |
 | `AGENT_ENGINE_RESOURCE_NAME` | Full Agent Engine resource name | empty (auto-populated) | No |
+| `BRAND_PROFILE` | Brand profile for the Creative Director: loads `agents/creative_director/brands/<name>.md` into every specialist brief (e.g. `mcdonalds`, `ecoflow`). Empty = brand-agnostic | empty | No |
+| `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` | Langfuse tracing for all agents (optional; tracing is a no-op without them). The secret key is stored in Secret Manager as `langfuse-secret-key` at deploy time | empty | Secret key: **Yes** |
+| `LANGFUSE_BASE_URL` / `LANGFUSE_TRACING_ENVIRONMENT` | Langfuse region URL and the environment label shown on traces | `https://cloud.langfuse.com` / `local` | No |
 | `NOTION_TOKEN` | Notion API token (optional) | empty | **Yes** |
 | `NOTION_PROJECT_DATABASE_ID` | Notion projects database ID (optional) | empty | Sensitive |
 | `NOTION_TASKS_DATABASE_ID` | Notion tasks database ID (optional) | empty | Sensitive |
@@ -308,7 +311,8 @@ At deploy time the three `NOTION_*` values are written to **Secret Manager** as 
 | Image model | `GEMINI_IMAGE_MODEL` in `.env`; default `gemini-3.1-flash-image` at `designer/image_gen_tool.py:L39` |
 | Retry attempts and backoff | `agents/<specialist>/retry.py` (`attempts=3`); `agents/creative_director/retry.py` (`attempts=5`) |
 | Orchestrator generation limits | inline `GenerateContentConfig` at `creative_director/agent.py:L73-L81` (`max_output_tokens`, `temperature`, `timeout`) |
-| Revision-loop behavior | the orchestrator instruction `SYSTEM_INSTRUCTION_TEMPLATE` at `creative_director/prompt.py:L7-L543` |
+| Revision-loop behavior | the "REVISION WORKFLOW" section of `SYSTEM_INSTRUCTION_TEMPLATE` in `creative_director/prompt.py`. The Critic's verdict is binding: every revision is re-reviewed, up to **2 revision rounds** per deliverable, after which unresolved feedback is reported to the user |
+| Brand context | `BRAND_PROFILE` in `.env`; add a new brand as `agents/creative_director/brands/<name>.md` |
 | Cloud Run resources (memory, CPU, timeout, scaling) | `deploy_single_agent` flags at `deploy/deploy_all_specialists.py:L183-L291` |
 | Caption count and tone | the Copywriter Skill at `agents/copywriter/skills/instagram-copywriting/SKILL.md` |
 
@@ -343,6 +347,23 @@ python3 deploy/deploy_orchestrator.py --action deploy --auto-deploy-specialists
 # 3) Run an end-to-end campaign against the deployed orchestrator.
 uv run run_campaign.py
 ```
+
+**Verify the deployment** before running a full campaign:
+
+```bash
+# All 5 specialists should be listed with a URL
+gcloud run services list --region "$CLOUD_RUN_REGION" --project "$GOOGLE_CLOUD_PROJECT"
+
+# Each agent card should return HTTP 200 and the agent's name
+curl -s "$CRITIC_AGENT_URL/.well-known/agent.json"
+
+# Optional: inspect every card in the A2A Inspector
+bash workshop/setup_inspector.sh
+```
+
+A successful `run_campaign.py` run returns, in order: market research, three captions, generated images (GCS/HTTPS links), the Critic's review (with `APPROVED` or `NEEDS_REVISION`; revisions are re-reviewed), and a project timeline. With Notion configured, the project and its tasks also appear in your databases.
+
+Each `deploy_orchestrator.py --action deploy` creates a **new** Agent Engine resource and overwrites `AGENT_ENGINE_ID` in `.env`. Delete superseded engines with `--action cleanup --resource_name <name>` to avoid leftover resources.
 
 To tear everything down (Cloud Run services, Agent Engine, Artifact Registry repo, GCS buckets, and Notion secrets):
 
@@ -413,6 +434,7 @@ Reference material the Copywriter draws on lives in `agents/copywriter/skills/in
 |---|---|
 | `google.auth ... could not automatically determine credentials` | Application Default Credentials are not set. Run `gcloud auth application-default login` and confirm `gcloud config get-value project`. |
 | `ValueError: Missing required environment variables` from `env_utils.py` | `PROJECT_ID` or `REGION` is unresolved. Set `GOOGLE_CLOUD_PROJECT` and `CLOUD_RUN_REGION` in `.env` (`validate_required_vars`, `env_utils.py:L71-L92`). |
+| Specialist deploy fails with `PERMISSION_DENIED: Build failed because the default service account is missing required IAM permissions` | Newer GCP projects no longer grant the default compute service account (`<project-number>-compute@developer.gserviceaccount.com`) build permissions. Grant it `roles/cloudbuild.builds.builder`, `roles/storage.objectViewer`, `roles/artifactregistry.writer` and `roles/logging.logWriter` with `gcloud projects add-iam-policy-binding`, then re-run the deploy. Also confirm `gcloud auth list` shows the account that owns the project. |
 | Specialist deploy stalls or errors on Cloud Build polling | Cloud Build polling is limited to 60 requests/minute; the script deploys agents **sequentially** by design. If you still hit it, wait a minute and re-run `deploy_all_specialists.py`. |
 | Image generation fails or returns no bytes | Check that `GEMINI_IMAGE_MODEL` is available in your `GOOGLE_CLOUD_LOCATION` (use `global` for preview models). Note the image model does not support function calling (`designer/image_gen_tool.py:L36`). The designer retries on quota errors via `retry.py`. |
 | `403` or unreachable when the orchestrator calls a specialist | Ensure each service deployed with `--allow-unauthenticated`, the `*_AGENT_URL` values are populated in `.env`, and the A2A host config (`PUBLIC_HOST`, `PUBLIC_PORT=443`, `PROTOCOL=https`) was set by the deploy script. |
