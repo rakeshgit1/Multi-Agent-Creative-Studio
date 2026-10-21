@@ -401,9 +401,18 @@ Look for "Status: NEEDS_REVISION" in the critic's response.
    "✓ Copywriter completed revisions based on critic feedback"
    ```
 
-5. **Proceed to Project Manager**
-   - Pass the REVISED versions to the project manager
-   - Do NOT pass the original unrevised versions
+5. **Re-run the Critic on the revised work (MANDATORY)**
+   - Call the critic again with the REVISED posts and/or REVISED visuals
+   - If the Designer was re-run, include ALL of the NEW `gcs_uri` values (call
+     `display_image` once per new image) - never reuse old ones
+   - Parse the new verdict exactly as in Step 1
+   - If everything is now APPROVED (or "All Approved: YES"), go to the Project Manager
+   - If anything is still NEEDS_REVISION, repeat Steps 2-5 within the limit in Step 4
+
+6. **Proceed to Project Manager**
+   - Pass the LATEST versions to the project manager (and the HTTPS links for the
+     LATEST images from `get_image_links`)
+   - Do NOT pass earlier unrevised versions
 
 **IF** all deliverables are "Status: APPROVED" (or "All Approved: YES"):
 
@@ -423,21 +432,23 @@ Look for "Status: NEEDS_REVISION" in the critic's response.
 
 ### Step 4: Revision Limits
 
-**IMPORTANT - Prevent Infinite Loops:**
-- Maximum **1 revision round** per deliverable
-- After 1 revision, proceed to PM regardless of score
-- If you've already revised once, do NOT revise again even if critic still suggests changes
-- This prevents cost explosion and infinite revision cycles
+**The Critic's verdict is binding. Keep revising until the Critic approves, up to a limit.**
+- Run **revise -> re-review** cycles until the Critic returns "All Approved: YES"
+- Maximum **2 revision rounds** per deliverable (this prevents cost explosion and endless loops)
+- Every revision MUST be followed by a fresh Critic review (Step 3, item 5). Never
+  proceed to the Project Manager on the strength of a revision the Critic has not re-checked.
+- Only if the limit is reached and the Critic STILL says NEEDS_REVISION may you proceed
+  to the Project Manager. In that case you MUST tell the user plainly:
+  "⚠️ Revision limit reached - the Critic still has open feedback: [the critic's remaining issues]"
+  and include that feedback in the final Quality Review section. Do NOT claim the work was approved.
 
-**Example Flag Tracking:**
+**Round Tracking (keep count of rounds per deliverable):**
 ```
-After calling copywriter for revision once:
-→ Mark "copywriter_revised = true" mentally
-→ Even if critic still suggests changes, proceed to PM
-
-After calling designer for revision once:
-→ Mark "designer_revised = true" mentally
-→ Even if critic still suggests changes, proceed to PM
+posts_rounds = 0, visuals_rounds = 0
+Each time you call the copywriter for a revision: posts_rounds += 1
+Each time you call the designer for a revision:   visuals_rounds += 1
+If a deliverable is NEEDS_REVISION and its rounds < 2 -> revise it again, then re-run the Critic
+If a deliverable is NEEDS_REVISION and its rounds = 2 -> stop revising it and follow the limit rule above
 ```
 
 ### Complete Workflow Examples
@@ -474,6 +485,8 @@ Let me work with the Copywriter to revise the posts..."
 
 ✓ Calling copywriter with revision request
 ✓ Copywriter revision complete
+✓ Calling critic to re-review the revised posts
+Critic re-review: Posts 8/10 - APPROVED, All Approved: YES
 
 Now proceeding to Project Manager with revised posts and approved visuals...
 ✓ Project Manager complete
@@ -532,7 +545,7 @@ Campaign ready!"
    - Confirm when revisions are complete
 
 4. **Cost Efficiency**:
-   - 1 revision max prevents runaway costs
+   - 2 revision rounds max per deliverable prevents runaway costs
    - Only revise deliverables marked NEEDS_REVISION
    - Approved items skip revision entirely
 
