@@ -61,7 +61,7 @@ echo -e "${YELLOW}The following resources will be deleted:${NC}"
 echo -e "  Cloud Run services: brand-strategist, copywriter, designer, critic, project-manager"
 echo -e "  Artifact Registry: cloud-run-source-deploy ($REGION)"
 echo -e "  GCS buckets: gs://${PROJECT_ID}-campaign-images, gs://${PROJECT_ID}-agent-staging, gs://run-sources-${PROJECT_ID}-${REGION}"
-echo -e "  Secret Manager secrets: notion-token, notion-project-db-id, notion-tasks-db-id (if they exist)"
+echo -e "  Secret Manager secrets: notion-token, notion-project-db-id, notion-tasks-db-id, langfuse-secret-key (if they exist)"
 if [ -n "$AGENT_ENGINE_RESOURCE_NAME" ]; then
     echo -e "  Agent Engine: $AGENT_ENGINE_RESOURCE_NAME"
 else
@@ -158,9 +158,9 @@ for BUCKET in \
 done
 
 # ─── Delete Secret Manager secrets ───────────────────────────────────────────
-echo -e "\n${YELLOW}Deleting Secret Manager secrets (Notion credentials)...${NC}"
+echo -e "\n${YELLOW}Deleting Secret Manager secrets (Notion and Langfuse credentials)...${NC}"
 
-for SECRET in notion-token notion-project-db-id notion-tasks-db-id; do
+for SECRET in notion-token notion-project-db-id notion-tasks-db-id langfuse-secret-key; do
     if gcloud secrets describe "$SECRET" --project="$PROJECT_ID" &>/dev/null; then
         gcloud secrets delete "$SECRET" --project="$PROJECT_ID" --quiet
         echo -e "  ${GREEN}✓ Deleted: $SECRET${NC}"

@@ -27,6 +27,8 @@ The published codelab is live at **https://ani-in.github.io/Multi-Agent-Creative
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Running the App](#running-the-app)
+  - [Verify the Deployment](#verify-the-deployment)
+  - [Teardown](#teardown)
 - [Using the App Step by Step](#using-the-app-step-by-step)
 - [Code Walkthrough](#code-walkthrough)
 - [Sample Data and Things to Try](#sample-data-and-things-to-try)
@@ -348,28 +350,42 @@ python3 deploy/deploy_orchestrator.py --action deploy --auto-deploy-specialists
 uv run run_campaign.py
 ```
 
-**Verify the deployment** before running a full campaign:
+### Verify the Deployment
+
+Run these from `workshop/starter` with `.env` loaded (`set -a; source .env; set +a`) before running a full campaign:
 
 ```bash
 # All 5 specialists should be listed with a URL
 gcloud run services list --region "$CLOUD_RUN_REGION" --project "$GOOGLE_CLOUD_PROJECT"
 
 # Each agent card should return HTTP 200 and the agent's name
-curl -s "$CRITIC_AGENT_URL/.well-known/agent.json"
+for url in "$STRATEGIST_AGENT_URL" "$COPYWRITER_AGENT_URL" "$DESIGNER_AGENT_URL" \
+           "$CRITIC_AGENT_URL" "$PM_AGENT_URL"; do
+  curl -s -o /dev/null -w "%{http_code}  $url\n" "$url/.well-known/agent.json"
+done
 
-# Optional: inspect every card in the A2A Inspector
+# The orchestrator should be recorded in .env after deploy
+grep AGENT_ENGINE_RESOURCE_NAME .env
+
+# Optional: inspect every card in the A2A Inspector (from the repo root)
 bash workshop/setup_inspector.sh
 ```
+
+For a local run, the ADK dev UI should load at `http://localhost:8000`, and a specialist started directly serves its card at `http://localhost:8080/.well-known/agent.json`.
 
 A successful `run_campaign.py` run returns, in order: market research, three captions, generated images (GCS/HTTPS links), the Critic's review (with `APPROVED` or `NEEDS_REVISION`; revisions are re-reviewed), and a project timeline. With Notion configured, the project and its tasks also appear in your databases.
 
 Each `deploy_orchestrator.py --action deploy` creates a **new** Agent Engine resource and overwrites `AGENT_ENGINE_ID` in `.env`. Delete superseded engines with `--action cleanup --resource_name <name>` to avoid leftover resources.
 
-To tear everything down (Cloud Run services, Agent Engine, Artifact Registry repo, GCS buckets, and Notion secrets):
+### Teardown
+
+To remove everything (Cloud Run services, Agent Engine, Artifact Registry repo, GCS buckets, and the Notion and Langfuse secrets in Secret Manager), run from `workshop/starter`:
 
 ```bash
 bash deploy/teardown_gcp.sh   # interactive; asks for confirmation
 ```
+
+The script cannot be undone. It does not delete your Langfuse or Notion accounts or data, or the GCP project itself.
 
 ## Using the App Step by Step
 
