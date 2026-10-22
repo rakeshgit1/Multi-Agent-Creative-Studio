@@ -226,7 +226,7 @@ There is no separate `docs/architecture.md`; the diagrams above and the [Code Wa
 - **Google Cloud CLI (`gcloud`)**, authenticated, with a project that has **billing enabled**.
 - **A Google Cloud project** with these APIs enabled: Vertex AI, Cloud Run, Cloud Storage, Secret Manager, and Artifact Registry. New to Google Cloud? The [Free Trial](https://cloud.google.com/free) grants $300 in credits (a card is required to verify the trial; you are not charged during it).
 - **IAM:** Owner or Editor on the project is sufficient for the workshop.
-- **Node.js and npm** if you want the Notion MCP integration (the Project Manager's Dockerfile installs `@notionhq/notion-mcp-server`) or the A2A Inspector.
+- **Node.js and npm** if you want the Notion MCP integration (the Project Manager's Dockerfile installs `@notionhq/notion-mcp-server`) or the A2A Inspector (which also needs `git`; Docker is optional).
 - **(Optional) A Notion account and integration token** to see the MCP project-tracking integration.
 
 ## Installation
@@ -367,8 +367,11 @@ done
 # The orchestrator should be recorded in .env after deploy
 grep AGENT_ENGINE_RESOURCE_NAME .env
 
-# Optional: inspect every card in the A2A Inspector (from the repo root)
+# Optional: install the A2A Inspector (clones to ~/a2a-inspector; needs network, git, Node.js)
 bash workshop/setup_inspector.sh
+# Then start it and paste each agent URL (e.g. $CRITIC_AGENT_URL) into its UI.
+# Use a port other than 8080 if a local specialist is running.
+cd ~/a2a-inspector && bash scripts/run.sh
 ```
 
 For a local run, the ADK dev UI should load at `http://localhost:8000`, and a specialist started directly serves its card at `http://localhost:8080/.well-known/agent.json`.
@@ -397,7 +400,7 @@ This repository is the starter for a guided codelab. The recommended path:
 4. **Run a specialist locally** to check it: `uv run adk web agents --allow_origins='*'`.
 5. **Deploy.** Run the two deploy scripts (see [Running the App](#running-the-app)).
 6. **Generate a campaign.** `uv run run_campaign.py`, or `python3 deploy/deploy_orchestrator.py --action test`.
-7. **(Optional) Inspect A2A.** Run `bash workshop/setup_inspector.sh` to set up the A2A Inspector and view each deployed agent's card.
+7. **(Optional) Inspect A2A.** Run `bash workshop/setup_inspector.sh` to install the A2A Inspector at `~/a2a-inspector`, start it with `cd ~/a2a-inspector && bash scripts/run.sh`, then paste each deployed agent's URL into its UI to view the card.
 
 ## Code Walkthrough
 
