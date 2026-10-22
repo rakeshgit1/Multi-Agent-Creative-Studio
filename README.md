@@ -29,6 +29,7 @@ The published codelab is live at **https://ani-in.github.io/Multi-Agent-Creative
 - [Running the App](#running-the-app)
   - [Verify the Deployment](#verify-the-deployment)
   - [Teardown](#teardown)
+- [Observability (Langfuse)](#observability-langfuse)
 - [Using the App Step by Step](#using-the-app-step-by-step)
 - [Code Walkthrough](#code-walkthrough)
 - [Sample Data and Things to Try](#sample-data-and-things-to-try)
@@ -213,10 +214,10 @@ There is no separate `docs/architecture.md`; the diagrams above and the [Code Wa
 | Specialist runtime | Cloud Run | Hosts the five specialist agents as autoscaling containers on port 8080 |
 | Orchestrator runtime | Vertex AI Agent Engine | Hosts the Creative Director as a managed reasoning engine |
 | Object storage | Google Cloud Storage | Stores generated campaign images; returns a `gcs_uri` per image |
-| Secrets | Google Cloud Secret Manager | Stores the Notion token and database IDs at deploy time |
+| Secrets | Google Cloud Secret Manager | Stores the Notion token, database IDs and Langfuse secret key at deploy time |
 | Container build | Artifact Registry plus Cloud Build (via `gcloud run deploy --source`) | Builds and stores the specialist images |
 | Local tooling | `uv`, `python-dotenv` | Dependency management and `.env` loading |
-| Observability | OpenTelemetry (ADK and Agent Engine telemetry env flags) | Optional tracing and message-content capture |
+| Observability | OpenTelemetry (ADK and Agent Engine telemetry env flags); Langfuse (optional) | Optional tracing and message-content capture; Langfuse shows a whole campaign as one trace across all agents |
 | Codelab site | `claat` static HTML in `docs/`, served by GitHub Pages | The published, step-by-step guide |
 
 ## Prerequisites
@@ -389,6 +390,19 @@ bash deploy/teardown_gcp.sh   # interactive; asks for confirmation
 ```
 
 The script cannot be undone. It does not delete your Langfuse or Notion accounts or data, or the GCP project itself.
+
+## Observability (Langfuse)
+
+Every agent can send traces to [Langfuse](https://langfuse.com): agent runs, every LLM call, every tool call (including the A2A calls from the Creative Director to the specialists), and the Gemini calls made directly inside tools (image generation and review). For those inner calls the response body and input images are hidden, so generated images are never uploaded. A whole campaign shows up as **one trace** across all six agents.
+
+Tracing is optional and runs alongside the ADK and Agent Engine telemetry (Cloud Trace), so you get both. Traces, including prompts and agent outputs, are sent to the Langfuse region set in `LANGFUSE_BASE_URL`, which is a third-party service outside your Google Cloud project.
+
+1. Create a Langfuse project and copy its API keys.
+2. Set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `LANGFUSE_BASE_URL` in `workshop/starter/.env` (see [Configuration](#configuration)). Leave the keys empty to run without tracing.
+3. Run or deploy as usual. The deploy scripts store the secret key in Secret Manager as `langfuse-secret-key` and pass the settings to Cloud Run and Agent Engine.
+4. Run a campaign, then open your Langfuse project's Traces view.
+
+Each agent folder has its own `observability.py` (copied per agent, like `retry.py`, because every agent is its own Docker image); `agent.py` calls `setup_observability("<agent>")`. See the [workshop README](workshop/README.md#observability-with-langfuse) for details.
 
 ## Using the App Step by Step
 
