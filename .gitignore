@@ -120,3 +120,6 @@ Desktop.ini
 # Large GIFs (kept local only; too big to push reliably)
 docs/img/*.gif
 workshop/diagrams/*.gif
+
+# Local ADK session DBs and generated artifacts
+.adk/

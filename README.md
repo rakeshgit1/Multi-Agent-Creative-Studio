@@ -395,6 +395,8 @@ The script cannot be undone. It does not delete your Langfuse or Notion accounts
 
 Every agent can send traces to [Langfuse](https://langfuse.com): agent runs, every LLM call, every tool call (including the A2A calls from the Creative Director to the specialists), and the Gemini calls made directly inside tools (image generation and review). For those inner calls the response body and input images are hidden, so generated images are never uploaded. A whole campaign shows up as **one trace** across all six agents.
 
+![System architecture with Langfuse tracing](workshop/diagrams/ai-creative-studio-architecture-langfuse.png)
+
 Tracing is optional and runs alongside the ADK and Agent Engine telemetry (Cloud Trace), so you get both. Traces, including prompts and agent outputs, are sent to the Langfuse region set in `LANGFUSE_BASE_URL`, which is a third-party service outside your Google Cloud project.
 
 1. Create a Langfuse project and copy its API keys.
